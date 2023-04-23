@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:hybrid/constants/ui_constants.dart';
+import 'package:hybrid/features/auth/view/login_view.dart';
 import 'package:hybrid/theme/app_theme.dart';
 import 'package:hybrid/utility/appbar.dart';
 
@@ -17,18 +19,27 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Demo',
       theme: AppTheme.themeData,
-      home: const MyWidget(),
+      home:  LoginView(),
     );
   }
 }
 
-class MyWidget extends StatelessWidget {
+class MyWidget extends StatefulWidget {
   const MyWidget({super.key});
+
+  @override
+  State<MyWidget> createState() => _MyWidgetState();
+}
+
+class _MyWidgetState extends State<MyWidget> {
+
+    //will not rebuild entire thing
+    final appBar = UIConstants.customAppBar;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: const CustomAppBar(),
+        appBar: appBar,
         body: SingleChildScrollView(
           child: Column(
             children: [Stories()],

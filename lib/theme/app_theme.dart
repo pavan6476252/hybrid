@@ -4,8 +4,8 @@ import 'package:hybrid/theme/color_pallet.dart';
 class AppTheme {
   static ThemeData themeData = ThemeData(
       useMaterial3: true,
-      cardColor: Pallet.resinBlack,
+      // cardColor: Pallet.resinBlack,
     
-      brightness: Brightness.dark,
+      // brightness: Brightness.dark,
   );
 }
