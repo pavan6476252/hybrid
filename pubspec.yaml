@@ -37,8 +37,14 @@ dependencies:
   cupertino_icons: ^1.0.2
 
   appwrite: ^9.0.0
-  flutter_riverpod: ^2.3.5
-  fpdart: ^0.5.0
+  flutter_riverpod: ^2.3.6
+  fpdart: ^0.6.0
+  google_fonts: ^4.0.4
+  go_router: ^7.0.0
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  email_validator: ^2.1.17
+  ionicons: ^0.2.2
 
 dev_dependencies:
   flutter_test:
