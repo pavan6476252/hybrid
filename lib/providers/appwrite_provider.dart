@@ -1,109 +1,125 @@
-import 'package:appwrite/appwrite.dart';
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:appwrite/models.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
+import 'package:appwrite/appwrite.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hybrid/constants/app_write_constants.dart';
+import 'package:hybrid/views/widgets/utils.dart';
 
-enum AuthStatus {
-  uninitialized,
-  authenticated,
-  unauthenticated,
-}
+final clientProvider = Provider<Client>((ref) {
+  return Client()
+      .setProject(AppWriteConstants.projectId)
+      .setEndpoint(AppWriteConstants.endPoint);
+});
+final accountProvider = Provider<Account>((ref) {
+  return Account(ref.read(clientProvider));
+});
 
-class AuthAPI extends ChangeNotifier {
-  Client client = Client();
-  late final Account account;
+final authProvider = Provider<Authentication>((ref) {
+  return Authentication(ref.watch(accountProvider));
+});
 
-  late User _currentUser;
+final userLoggedInProvider = StateProvider<bool?>((ref) {
+  return false;
+});
 
-  AuthStatus _status = AuthStatus.uninitialized;
+final userProvider = FutureProvider<User?>((ref) async {
+  final user = ref.watch(authProvider).getAccount();
+  return user;
+});
 
-  // Getter methods
-  User get currentUser => _currentUser;
-  AuthStatus get status => _status;
-  String? get username => _currentUser.name;
-  String? get email => _currentUser.email;
-  String? get userid => _currentUser.$id;
+class Authentication {
+  late Account account;
 
-  // Constructor
-  AuthAPI() {
-    init();
-    loadUser();
-  }
+  Authentication(this.account);
 
-  // Initialize the Appwrite client
-  init() {
-    client
-        .setEndpoint(AppWriteConstants.endPoint)
-        .setProject(AppWriteConstants.projectId);
-    account = Account(client);
-  }
-
-  loadUser() async {
+  // get user data
+  Future<User?> getAccount() async {
     try {
-      final user = await account.get();
-      _status = AuthStatus.authenticated;
-      _currentUser = user;
+      return await account.get();
+    } on AppwriteException catch (e) {
+      print(e.toString());
+      return null;
+    }
+  }
+
+  // login user
+  Future<void> login(String email, String password,
+      BuildContext context) async {
+    try {
+      await account.createEmailSession(email: email, password: password);
+      context.go('/');
+    } on AppwriteException catch (e) {
+      await showDialog(
+        context: context,
+        builder: (BuildContext context) => AlertDialog(
+          title: const Text('Error Occured'),
+          content: Text(e.toString()),
+          actions: [
+            TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: const Text("Ok"))
+          ],
+        ),
+      );
+    }
+  }
+
+  //sign up
+
+  Future<void> signUp(String userName,
+      String email, String password, BuildContext context) async {
+    try {
+      await account.create(name: userName,
+          email: email, password: password, userId: 'unique()');
+      // We will creating a userId as the email id(UNIQUE)
+
+      await account.createEmailSession(email: email, password: password);
+
+      context.go('/');
     } catch (e) {
-      _status = AuthStatus.unauthenticated;
+      print(" Sign Up $e");
+      await showDialog(
+        context: context,
+        builder: (BuildContext context) => AlertDialog(
+          title: const Text('Error Occured'),
+          content: Text(e.toString()),
+          actions: [
+            TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: const Text("Ok"))
+          ],
+        ),
+      );
     }
   }
 
-  Future<User> createUser(
-      {required String name ,required String email, required String password}) async {
-    notifyListeners();
-
-    try {
-      final user = await account.create(
-          userId: ID.unique(),
-          email: email,
-          password: password,
-          name: name);
-      return user;
-    } finally {
-      notifyListeners();
-    }
-  }
-
-  Future<Session> createEmailSession(
-      {required String email, required String password}) async {
-    notifyListeners();
-
-    try {
-      final session =
-          await account.createEmailSession(email: email, password: password);
-      _currentUser = await account.get();
-      _status = AuthStatus.authenticated;
-      return session;
-    } finally {
-      notifyListeners();
-    }
-  }
-
-  signInWithProvider({required String provider}) async {
-    try {
-      final session = await account.createOAuth2Session(provider: provider);
-      _currentUser = await account.get();
-      _status = AuthStatus.authenticated;
-      return session;
-    } finally {
-      notifyListeners();
-    }
-  }
-
-  signOut() async {
+  Future<void> logout(BuildContext context) async {
     try {
       await account.deleteSession(sessionId: 'current');
-      _status = AuthStatus.unauthenticated;
-    } finally {
-      notifyListeners();
+      showScaffoldMsg(context, "Logged out Successfully", false);
+      context.go('/');
+    } catch (e) {
+      // print(e);
+      await showDialog(
+          context: context,
+          builder: (BuildContext context) => AlertDialog(
+                title: const Text('Something went wrong'),
+                content: Text(e.toString()),
+                actions: [
+                  TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                      child: const Text("Ok"))
+                ],
+              ));
     }
-  }
-
-  Future<Preferences> getUserPreferences() async {
-    return await account.getPrefs();
-  }
-
-  updatePreferences({required String bio}) async {
-    return account.updatePrefs(prefs: {'bio': bio});
   }
 }
